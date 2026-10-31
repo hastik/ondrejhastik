@@ -16,6 +16,7 @@
   </script>
   <link rel="stylesheet" href="style.css">
   <script src="theme.js" defer></script>
+  <script src="settings.js" defer></script>
 </head>
 <body>
   <div class="topline" aria-hidden="true"></div>
@@ -56,7 +57,7 @@
     </div>
 
     <img class="hero__photo" src="me.png" alt="Ondrej Hastik" width="780" height="860">
-    <a class="hero__tab" href="#">AWWARD</a>
+    <button class="hero__tab" type="button" aria-expanded="false" aria-controls="settings-panel" aria-label="Open settings">SETTINGS</button>
     <ul class="hero__squares" aria-hidden="true">
       <li class="hero__square hero__square--1"></li>
       <li class="hero__square hero__square--2"></li>
@@ -87,5 +88,27 @@
       </article>
     </section>
   </main>
+
+  <aside class="settings-panel" id="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true">
+    <div class="settings-panel__header">
+      <h2 class="settings-panel__title" id="settings-title">Settings</h2>
+      <button class="settings-panel__close" type="button" aria-label="Close settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="settings-panel__content">
+      <section class="settings-section">
+        <div class="settings-section__header">
+          <h3 class="settings-section__title">Colors</h3>
+          <button class="settings-section__reset" type="button">Reset</button>
+        </div>
+        <div class="color-grid" id="color-grid"></div>
+      </section>
+    </div>
+  </aside>
+  <div class="settings-overlay" aria-hidden="true"></div>
 </body>
 </html>
