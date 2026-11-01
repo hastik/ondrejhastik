@@ -2,12 +2,17 @@
    Tokens
    ========================================================================== */
 :root {
-  /* Fluid unit: design drawn at 1024px, scales with viewport (capped below) */
-  --u: calc(100vw / 1024);
+  /*
+   * Wrappers keep growing with the viewport (no hard max-width stop).
+   * normal: full width at 1024px → ~50vw from 2560px up (still grows in px).
+   *   1024 → 1024px (100%), 1920 → 1173px (61%), 2560 → 1280px (50%), 3200 → 1600px (50%)
+   */
+  --wrapper-normal: min(100%, max(50vw, calc((100vw + 5120px) / 6)));
+  --wrapper-wide: min(100%, max(75vw, calc((100vw + 5120px) / 5)));
 
-  /* Wrappers: width system for layout */
-  --wrapper-normal: calc(1024 * var(--u));
-  --wrapper-wide: min(100%, calc(1400 * var(--u)));
+  /* Design unit tracks the normal wrapper so the hero artboard stays proportional */
+  --u: calc(min(100vw, max(50vw, (100vw + 5120px) / 6)) / 1024);
+
   --page-gutter: calc(70 * var(--u));       /* wide (header) */
   --content-inset: calc(135 * var(--u));    /* normal content + intro left edge */
 
@@ -104,10 +109,9 @@
   color-scheme: dark;
 }
 
+/* Slightly larger H1 on wide monitors – scales with --u, no width cap */
 @media (min-width: 1600px) {
   :root {
-    --u: 1.5625px;
-    /* Slightly larger H1 ceiling on wide monitors */
     --fs-h1: calc(58 * var(--u));
     --lh-h1: calc(64 * var(--u));
   }
