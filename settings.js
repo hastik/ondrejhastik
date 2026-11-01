@@ -1,4 +1,4 @@
-// Settings drawer: per-theme colour + font-size overrides, persisted in localStorage.
+// Settings drawer: colours + live Utopia type/space/container controls.
 (() => {
   const root = document.documentElement;
   const tab = document.querySelector('.hero__tab');
@@ -6,13 +6,13 @@
   const overlay = document.querySelector('.settings-overlay');
   const closeBtn = panel && panel.querySelector('.settings-panel__close');
   const colorGrid = document.getElementById('color-grid');
-  const fontGrid = document.getElementById('font-grid');
+  const utopiaGrid = document.getElementById('utopia-grid');
   const colorReset = panel && panel.querySelector('[data-reset="colors"]');
-  const fontReset = panel && panel.querySelector('[data-reset="fonts"]');
-  if (!tab || !panel || !overlay || !closeBtn || !colorGrid || !fontGrid || !colorReset || !fontReset) return;
+  const utopiaReset = panel && panel.querySelector('[data-reset="utopia"]');
+  if (!tab || !panel || !overlay || !closeBtn || !colorGrid || !utopiaGrid || !colorReset || !utopiaReset) return;
 
   const COLOR_KEY = 'color-overrides';
-  const FONT_KEY = 'font-overrides';
+  const UTOPIA_KEY = 'utopia-overrides';
 
   const COLORS = [
     { key: '--c-bg', label: 'Background' },
@@ -66,23 +66,36 @@
     }
   };
 
-  // Coefficients used as calc(N * var(--u)) in style.css
-  // defLarge mirrors the ≥1600px CSS bump for --fs-h1
-  const FONTS = [
-    { key: '--fs-nav', label: 'Nav', min: 4, max: 14, step: 0.1, def: 6.8 },
-    { key: '--fs-brand', label: 'Brand', min: 4, max: 16, step: 0.1, def: 7 },
-    { key: '--fs-tiny', label: 'Tiny', min: 5, max: 16, step: 0.1, def: 8.4 },
-    { key: '--fs-small', label: 'Small', min: 5, max: 18, step: 0.1, def: 8.6 },
-    { key: '--fs-tab', label: 'Tab', min: 5, max: 16, step: 0.1, def: 9 },
-    { key: '--fs-label', label: 'Label', min: 6, max: 20, step: 0.1, def: 11.2 },
-    { key: '--fs-lead', label: 'Lead', min: 8, max: 24, step: 0.1, def: 13.5 },
-    { key: '--fs-h2', label: 'Heading 2', min: 10, max: 28, step: 0.1, def: 16 },
-    { key: '--fs-statement', label: 'Statement', min: 14, max: 40, step: 0.1, def: 25.5 },
-    { key: '--fs-h1', label: 'Heading 1', min: 28, max: 72, step: 0.5, def: 46, defLarge: 58 }
+  const UTOPIA_DEFAULTS = {
+    minWidth: 360,
+    maxWidth: 1920,
+    minFont: 16,
+    maxFont: 20,
+    minScale: 1.21,
+    maxScale: 1.31,
+    multNormal: 80,
+    multWide: 100
+  };
+
+  const UTOPIA_FIELDS = [
+    { key: 'minWidth', label: 'Min viewport (px)', min: 280, max: 600, step: 10 },
+    { key: 'maxWidth', label: 'Max viewport (px)', min: 1024, max: 2560, step: 20 },
+    { key: 'minFont', label: 'Base size @min (px)', min: 12, max: 22, step: 0.5 },
+    { key: 'maxFont', label: 'Base size @max (px)', min: 14, max: 32, step: 0.5 },
+    { key: 'minScale', label: 'Type scale @min', min: 1.1, max: 1.4, step: 0.01 },
+    { key: 'maxScale', label: 'Type scale @max', min: 1.15, max: 1.5, step: 0.01 },
+    { key: 'multNormal', label: 'Container × normal', min: 60, max: 110, step: 1 },
+    { key: 'multWide', label: 'Container × wide', min: 80, max: 140, step: 1 }
   ];
 
-  const largeScreen = () => matchMedia('(min-width: 1600px)').matches;
-  const fontDefault = (font) => (font.defLarge && largeScreen() ? font.defLarge : font.def);
+  const SPACE_MULT = {
+    '3xs': 0.25, '2xs': 0.5, xs: 0.75, s: 1, m: 1.5, l: 2, xl: 3,
+    '2xl': 4, '3xl': 6, '4xl': 8, '5xl': 12, '6xl': 16
+  };
+  const SPACE_PAIRS = [
+    ['xs', 's'], ['s', 'm'], ['s', 'l'], ['m', 'l'], ['l', 'xl'], ['xl', '2xl']
+  ];
+  const TYPE_STEPS = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7];
 
   let lastFocus = null;
   let open = false;
@@ -98,22 +111,73 @@
     try { localStorage.setItem(key, JSON.stringify(all)); } catch (e) {}
   };
 
-  const formatCoeff = (n) => {
-    const rounded = Math.round(Number(n) * 10) / 10;
-    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  const round = (n, d = 4) => {
+    const p = 10 ** d;
+    return Math.round(n * p) / p;
   };
 
-  const fontCss = (n) => `calc(${formatCoeff(n)} * var(--u))`;
+  const utopiaParams = () => ({ ...UTOPIA_DEFAULTS, ...load(UTOPIA_KEY) });
+
+  // Utopia clamp: px sizes/viewports → rem + vw preferred
+  // preferred = (yPx/16)rem + (slope*100)vw  — do NOT divide slope by 16
+  const fluidClamp = (minSize, maxSize, minW, maxW) => {
+    const slope = (maxSize - minSize) / (maxW - minW);
+    const y = (-minW) * slope + minSize;
+    const mn = round(minSize / 16);
+    const mx = round(maxSize / 16);
+    const yi = round(y / 16);
+    const sl = round(slope * 100);
+    return `clamp(${mn}rem, ${yi}rem + ${sl}vw, ${mx}rem)`;
+  };
+
+  const stepName = (step) => (step < 0 ? `--step--${-step}` : `--step-${step}`);
+
+  const applyUtopia = (params = utopiaParams()) => {
+    const {
+      minWidth, maxWidth, minFont, maxFont, minScale, maxScale, multNormal, multWide
+    } = params;
+
+    TYPE_STEPS.forEach((step) => {
+      const minSize = minFont * (minScale ** step);
+      const maxSize = maxFont * (maxScale ** step);
+      root.style.setProperty(stepName(step), fluidClamp(minSize, maxSize, minWidth, maxWidth));
+    });
+
+    Object.entries(SPACE_MULT).forEach(([name, mult]) => {
+      root.style.setProperty(
+        `--space-${name}`,
+        fluidClamp(minFont * mult, maxFont * mult, minWidth, maxWidth)
+      );
+    });
+
+    SPACE_PAIRS.forEach(([a, b]) => {
+      root.style.setProperty(
+        `--space-${a}-${b}`,
+        fluidClamp(minFont * SPACE_MULT[a], maxFont * SPACE_MULT[b], minWidth, maxWidth)
+      );
+    });
+
+    root.style.setProperty('--container-mult-normal', String(multNormal));
+    root.style.setProperty('--container-mult-wide', String(multWide));
+    // Ensure aliases still point at steps (in case something cleared them)
+    root.style.setProperty('--myrem', 'var(--step-0)');
+    root.style.setProperty('--wrapper-normal', 'calc(var(--myrem) * var(--container-mult-normal))');
+    root.style.setProperty('--wrapper-wide', 'calc(var(--myrem) * var(--container-mult-wide))');
+
+    syncUtopiaInputs(params);
+  };
+
+  const clearUtopiaInline = () => {
+    TYPE_STEPS.forEach((step) => root.style.removeProperty(stepName(step)));
+    Object.keys(SPACE_MULT).forEach((name) => root.style.removeProperty(`--space-${name}`));
+    SPACE_PAIRS.forEach(([a, b]) => root.style.removeProperty(`--space-${a}-${b}`));
+    ['--container-mult-normal', '--container-mult-wide', '--myrem', '--wrapper-normal', '--wrapper-wide']
+      .forEach((k) => root.style.removeProperty(k));
+  };
 
   const currentColor = (key) => {
     const stored = (load(COLOR_KEY)[theme()] || {})[key];
     return stored || COLOR_DEFAULTS[theme()][key];
-  };
-
-  const currentFont = (key) => {
-    const stored = load(FONT_KEY)[key];
-    const fallback = FONTS.find((f) => f.key === key);
-    return stored != null ? Number(stored) : fontDefault(fallback);
   };
 
   const syncColorInputs = () => {
@@ -127,17 +191,6 @@
     });
   };
 
-  const syncFontInputs = () => {
-    fontGrid.querySelectorAll('.font-row').forEach((row) => {
-      const key = row.dataset.key;
-      const value = currentFont(key);
-      const slider = row.querySelector('.font-row__slider');
-      const out = row.querySelector('.font-row__value');
-      if (slider) slider.value = value;
-      if (out) out.textContent = formatCoeff(value);
-    });
-  };
-
   const applyColorOverrides = () => {
     COLORS.forEach(({ key }) => root.style.removeProperty(key));
     const overrides = load(COLOR_KEY)[theme()] || {};
@@ -145,20 +198,21 @@
     syncColorInputs();
   };
 
-  const applyFontOverrides = () => {
-    FONTS.forEach(({ key }) => root.style.removeProperty(key));
-    const overrides = load(FONT_KEY);
-    Object.entries(overrides).forEach(([key, value]) => {
-      root.style.setProperty(key, fontCss(value));
+  const formatVal = (key, n) => {
+    if (key.includes('Scale')) return Number(n).toFixed(2);
+    if (key.includes('Font')) return String(Number(n));
+    return String(Math.round(Number(n)));
+  };
+
+  const syncUtopiaInputs = (params = utopiaParams()) => {
+    utopiaGrid.querySelectorAll('.font-row').forEach((row) => {
+      const key = row.dataset.key;
+      const slider = row.querySelector('.font-row__slider');
+      const out = row.querySelector('.font-row__value');
+      const value = params[key];
+      if (slider) slider.value = value;
+      if (out) out.textContent = formatVal(key, value);
     });
-    // Keep H1 line-height in proportion when H1 size is overridden
-    if (overrides['--fs-h1'] != null) {
-      const h1 = Number(overrides['--fs-h1']);
-      root.style.setProperty('--lh-h1', fontCss(h1 * (52 / 46)));
-    } else {
-      root.style.removeProperty('--lh-h1');
-    }
-    syncFontInputs();
   };
 
   const setPageInert = (on) => {
@@ -237,53 +291,60 @@
     colorGrid.append(row);
   });
 
-  FONTS.forEach((font) => {
-    const { key, label, min, max, step } = font;
+  const note = document.createElement('p');
+  note.className = 'utopia-note';
+  note.textContent = 'Live Utopia controls (utopia.fyi). Type + space + container scale together.';
+  utopiaGrid.append(note);
+
+  UTOPIA_FIELDS.forEach((field) => {
     const row = document.createElement('label');
     row.className = 'font-row';
-    row.dataset.key = key;
+    row.dataset.key = field.key;
 
     const name = document.createElement('span');
     name.className = 'font-row__label';
-    name.textContent = label;
+    name.textContent = field.label;
 
     const out = document.createElement('span');
     out.className = 'font-row__value';
-    out.textContent = formatCoeff(currentFont(key));
 
     const slider = document.createElement('input');
     slider.type = 'range';
     slider.className = 'font-row__slider';
-    slider.min = String(min);
-    slider.max = String(max);
-    slider.step = String(step);
-    slider.value = String(currentFont(key));
-    slider.setAttribute('aria-label', `${label} font size`);
+    slider.min = String(field.min);
+    slider.max = String(field.max);
+    slider.step = String(field.step);
+    slider.setAttribute('aria-label', field.label);
 
     const onChange = () => {
       const value = Number(slider.value);
-      out.textContent = formatCoeff(value);
-      root.style.setProperty(key, fontCss(value));
-      if (key === '--fs-h1') {
-        root.style.setProperty('--lh-h1', fontCss(value * (52 / 46)));
-      }
-      const all = load(FONT_KEY);
-      if (value === fontDefault(font)) delete all[key];
-      else all[key] = value;
-      save(FONT_KEY, all);
+      out.textContent = formatVal(field.key, value);
+      const all = { ...utopiaParams(), [field.key]: value };
+      // Keep max > min where it matters
+      if (field.key === 'minWidth' && all.minWidth >= all.maxWidth) all.maxWidth = all.minWidth + 100;
+      if (field.key === 'maxWidth' && all.maxWidth <= all.minWidth) all.minWidth = all.maxWidth - 100;
+      if (field.key === 'minFont' && all.minFont > all.maxFont) all.maxFont = all.minFont;
+      if (field.key === 'maxFont' && all.maxFont < all.minFont) all.minFont = all.maxFont;
+      if (field.key === 'minScale' && all.minScale > all.maxScale) all.maxScale = all.minScale;
+      if (field.key === 'maxScale' && all.maxScale < all.minScale) all.minScale = all.maxScale;
+      if (field.key === 'multNormal' && all.multNormal > all.multWide) all.multWide = all.multNormal;
+      if (field.key === 'multWide' && all.multWide < all.multNormal) all.multNormal = all.multWide;
+
+      const cleaned = {};
+      Object.keys(UTOPIA_DEFAULTS).forEach((k) => {
+        if (all[k] !== UTOPIA_DEFAULTS[k]) cleaned[k] = all[k];
+      });
+      save(UTOPIA_KEY, cleaned);
+      applyUtopia({ ...UTOPIA_DEFAULTS, ...cleaned });
     };
 
     slider.addEventListener('input', onChange);
     row.append(name, out, slider);
-    fontGrid.append(row);
-  });
-
-  matchMedia('(min-width: 1600px)').addEventListener('change', () => {
-    if (load(FONT_KEY)['--fs-h1'] == null) syncFontInputs();
+    utopiaGrid.append(row);
   });
 
   applyColorOverrides();
-  applyFontOverrides();
+  applyUtopia();
 
   tab.addEventListener('click', () => (open ? closePanel() : openPanel()));
   closeBtn.addEventListener('click', closePanel);
@@ -296,9 +357,10 @@
     applyColorOverrides();
   });
 
-  fontReset.addEventListener('click', () => {
-    save(FONT_KEY, {});
-    applyFontOverrides();
+  utopiaReset.addEventListener('click', () => {
+    save(UTOPIA_KEY, {});
+    clearUtopiaInline();
+    applyUtopia(UTOPIA_DEFAULTS);
   });
 
   document.addEventListener('keydown', (e) => {
