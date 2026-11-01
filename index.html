@@ -16,6 +16,7 @@
   </script>
   <link rel="stylesheet" href="style.css">
   <script src="theme.js" defer></script>
+  <script src="nav.js" defer></script>
   <script src="settings.js" defer></script>
 </head>
 <body>
@@ -32,7 +33,7 @@
           ONDREJ HASTIK
         </a>
         <div class="header__right">
-          <nav class="nav" aria-label="Main">
+          <nav class="nav" id="main-nav" aria-label="Main">
             <ul class="nav__list">
               <li><a class="nav__link" href="/" aria-current="page">Home</a></li>
               <li><a class="nav__link" href="#">My story</a></li>
@@ -46,6 +47,13 @@
           <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme">
             <svg class="theme-toggle__sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
             <svg class="theme-toggle__moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          </button>
+          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="main-nav" aria-label="Open menu">
+            <span class="nav-toggle__bars" aria-hidden="true">
+              <span class="nav-toggle__bar"></span>
+              <span class="nav-toggle__bar"></span>
+              <span class="nav-toggle__bar"></span>
+            </span>
           </button>
         </div>
       </div>
@@ -113,15 +121,48 @@
         </div>
         <div class="color-grid" id="color-grid"></div>
       </section>
-      <section class="settings-section" data-section="fonts">
+      <section class="settings-section" data-section="utopia">
         <div class="settings-section__header">
-          <h3 class="settings-section__title">Font sizes</h3>
-          <button class="settings-section__reset" type="button" data-reset="fonts">Reset</button>
+          <h3 class="settings-section__title">Utopia (type &amp; width)</h3>
+          <button class="settings-section__reset" type="button" data-reset="utopia">Reset</button>
         </div>
-        <div class="font-grid" id="font-grid"></div>
+        <div class="utopia-grid" id="utopia-grid"></div>
       </section>
     </div>
+    <div class="settings-panel__footer">
+      <div class="settings-actions">
+        <button class="settings-actions__btn" type="button" data-action="save">Save</button>
+        <button class="settings-actions__btn" type="button" data-action="load">Load</button>
+      </div>
+      <button class="settings-actions__btn settings-actions__btn--export" type="button" data-action="export">Export</button>
+      <p class="settings-actions__status" id="settings-status" aria-live="polite"></p>
+    </div>
   </aside>
+
+  <dialog class="settings-dialog" id="settings-load-dialog">
+    <form method="dialog" class="settings-dialog__form">
+      <h3 class="settings-dialog__title">Load preset</h3>
+      <label class="settings-dialog__label" for="settings-preset-select">Saved presets</label>
+      <select class="settings-dialog__select" id="settings-preset-select" size="6"></select>
+      <div class="settings-dialog__actions">
+        <button class="settings-actions__btn" type="submit" value="cancel">Cancel</button>
+        <button class="settings-actions__btn settings-actions__btn--danger" type="submit" value="delete">Delete</button>
+        <button class="settings-actions__btn settings-actions__btn--primary" type="submit" value="load">Load</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="settings-dialog settings-dialog--export" id="settings-export-dialog">
+    <form method="dialog" class="settings-dialog__form">
+      <h3 class="settings-dialog__title">Export settings</h3>
+      <p class="settings-dialog__hint">Copy this block and paste it into chat so the values can be applied as new defaults.</p>
+      <textarea class="settings-dialog__textarea" id="settings-export-text" readonly rows="14" spellcheck="false"></textarea>
+      <div class="settings-dialog__actions">
+        <button class="settings-actions__btn" type="submit" value="close">Close</button>
+        <button class="settings-actions__btn settings-actions__btn--primary" type="button" id="settings-export-copy">Copy</button>
+      </div>
+    </form>
+  </dialog>
   <div class="settings-overlay" aria-hidden="true"></div>
 </body>
 </html>
