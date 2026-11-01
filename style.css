@@ -66,15 +66,19 @@
   --lh-small: 1.45;
   --lh-tiny: 1.45;
 
-  /* Layout sizes derived from fluid rem (1024 artboard → ~myrem*64) */
+  /* Layout sizes on the Utopia scale (hero height tracks H1 / step-6) */
   --line-h: var(--space-3xs);
-  --hero-h: calc(var(--myrem) * 30.5);
   --nav-gap: var(--space-m);
   --content-inset: 0px;
   --intro-x: 0px;
-  --intro-y: calc(var(--myrem) * 8);
+  --intro-y: var(--space-3xl);
+  /*
+   * Hero must grow with the display size, not only with --myrem.
+   * ~7.2× H1 covers 2-line title + lead/tiny stack + gaps under absolute layout.
+   */
+  --hero-h: calc(var(--fs-h1) * 7.2 + var(--space-4xl));
   --photo-x: 46.7%;
-  --photo-h: calc(var(--myrem) * 27.5);
+  --photo-h: calc(var(--hero-h) - var(--intro-y) * 0.35);
   --square: var(--space-2xs);
   --radius: 0;
   --toggle: var(--space-s);
@@ -219,7 +223,7 @@ img { display: block; max-width: 100%; }
 }
 
 .intro { position: absolute; left: var(--intro-x); top: var(--intro-y); z-index: 2; max-width: 48%; }
-.intro__hello { font-size: var(--fs-lead); color: var(--c-text-soft); }
+.intro__hello { font-size: var(--fs-lead); line-height: var(--lh-lead); color: var(--c-text-soft); }
 .intro__title { font-weight: 400; font-size: var(--fs-h1); line-height: var(--lh-h1); letter-spacing: -.025em; margin-top: var(--space-s); }
 .intro__sub { font-size: var(--fs-lead); line-height: var(--lh-lead); color: var(--c-text-soft); margin-top: var(--space-xs); max-width: 18em; }
 .intro__tiny { font-size: var(--fs-tiny); line-height: var(--lh-tiny); color: var(--c-text-strong); margin-top: var(--space-xs); }
