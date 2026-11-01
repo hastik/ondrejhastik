@@ -100,12 +100,19 @@
       </button>
     </div>
     <div class="settings-panel__content">
-      <section class="settings-section">
+      <section class="settings-section" data-section="colors">
         <div class="settings-section__header">
           <h3 class="settings-section__title">Colors</h3>
-          <button class="settings-section__reset" type="button">Reset</button>
+          <button class="settings-section__reset" type="button" data-reset="colors">Reset</button>
         </div>
         <div class="color-grid" id="color-grid"></div>
+      </section>
+      <section class="settings-section" data-section="fonts">
+        <div class="settings-section__header">
+          <h3 class="settings-section__title">Font sizes</h3>
+          <button class="settings-section__reset" type="button" data-reset="fonts">Reset</button>
+        </div>
+        <div class="font-grid" id="font-grid"></div>
       </section>
     </div>
   </aside>
