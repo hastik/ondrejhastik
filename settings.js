@@ -80,7 +80,7 @@
 
   const UTOPIA_FIELDS = [
     { key: 'minWidth', label: 'Min viewport (px)', min: 280, max: 600, step: 10 },
-    { key: 'maxWidth', label: 'Max viewport (px)', min: 1024, max: 2560, step: 20 },
+    { key: 'maxWidth', label: 'Max viewport (px)', min: 1024, max: 4000, step: 20 },
     { key: 'minFont', label: 'Base size @min (px)', min: 12, max: 22, step: 0.5 },
     { key: 'maxFont', label: 'Base size @max (px)', min: 14, max: 32, step: 0.5 },
     { key: 'minScale', label: 'Type scale @min', min: 1.1, max: 1.4, step: 0.01 },
