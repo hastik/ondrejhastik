@@ -77,7 +77,8 @@
    */
   --hero-h: calc(var(--fs-h1) * 7.2 + var(--space-4xl));
   --photo-x: 46.7%;
-  --photo-h: calc(var(--hero-h) * 0.72);
+  --photo-scale: 0.9;
+  --photo-h: calc(var(--hero-h) * var(--photo-scale));
   --square: var(--space-2xs);
   --radius: 0;
   --toggle: var(--space-s);

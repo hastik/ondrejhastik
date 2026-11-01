@@ -74,7 +74,8 @@
     minScale: 1.21,
     maxScale: 1.31,
     multNormal: 80,
-    multWide: 100
+    multWide: 100,
+    photoScale: 0.9
   };
 
   const UTOPIA_FIELDS = [
@@ -85,7 +86,8 @@
     { key: 'minScale', label: 'Type scale @min', min: 1.1, max: 1.4, step: 0.01 },
     { key: 'maxScale', label: 'Type scale @max', min: 1.15, max: 1.5, step: 0.01 },
     { key: 'multNormal', label: 'Container × normal', min: 60, max: 110, step: 1 },
-    { key: 'multWide', label: 'Container × wide', min: 80, max: 140, step: 1 }
+    { key: 'multWide', label: 'Container × wide', min: 80, max: 140, step: 1 },
+    { key: 'photoScale', label: 'Photo size', min: 0.5, max: 1.15, step: 0.01 }
   ];
 
   const SPACE_MULT = {
@@ -134,7 +136,7 @@
 
   const applyUtopia = (params = utopiaParams()) => {
     const {
-      minWidth, maxWidth, minFont, maxFont, minScale, maxScale, multNormal, multWide
+      minWidth, maxWidth, minFont, maxFont, minScale, maxScale, multNormal, multWide, photoScale
     } = params;
 
     TYPE_STEPS.forEach((step) => {
@@ -159,6 +161,7 @@
 
     root.style.setProperty('--container-mult-normal', String(multNormal));
     root.style.setProperty('--container-mult-wide', String(multWide));
+    root.style.setProperty('--photo-scale', String(photoScale));
     // Ensure aliases still point at steps (in case something cleared them)
     root.style.setProperty('--myrem', 'var(--step-0)');
     root.style.setProperty('--wrapper-normal', 'calc(var(--myrem) * var(--container-mult-normal))');
@@ -171,8 +174,10 @@
     TYPE_STEPS.forEach((step) => root.style.removeProperty(stepName(step)));
     Object.keys(SPACE_MULT).forEach((name) => root.style.removeProperty(`--space-${name}`));
     SPACE_PAIRS.forEach(([a, b]) => root.style.removeProperty(`--space-${a}-${b}`));
-    ['--container-mult-normal', '--container-mult-wide', '--myrem', '--wrapper-normal', '--wrapper-wide']
-      .forEach((k) => root.style.removeProperty(k));
+    [
+      '--container-mult-normal', '--container-mult-wide', '--photo-scale',
+      '--myrem', '--wrapper-normal', '--wrapper-wide'
+    ].forEach((k) => root.style.removeProperty(k));
   };
 
   const currentColor = (key) => {
@@ -199,6 +204,7 @@
   };
 
   const formatVal = (key, n) => {
+    if (key === 'photoScale') return `${Math.round(Number(n) * 100)}%`;
     if (key.includes('Scale')) return Number(n).toFixed(2);
     if (key.includes('Font')) return String(Number(n));
     return String(Math.round(Number(n)));
