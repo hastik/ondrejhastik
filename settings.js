@@ -1,15 +1,18 @@
-// Settings drawer: per-theme colour overrides, persisted in localStorage.
+// Settings drawer: per-theme colour + font-size overrides, persisted in localStorage.
 (() => {
   const root = document.documentElement;
   const tab = document.querySelector('.hero__tab');
   const panel = document.getElementById('settings-panel');
   const overlay = document.querySelector('.settings-overlay');
   const closeBtn = panel && panel.querySelector('.settings-panel__close');
-  const resetBtn = panel && panel.querySelector('.settings-section__reset');
-  const grid = document.getElementById('color-grid');
-  if (!tab || !panel || !overlay || !closeBtn || !resetBtn || !grid) return;
+  const colorGrid = document.getElementById('color-grid');
+  const fontGrid = document.getElementById('font-grid');
+  const colorReset = panel && panel.querySelector('[data-reset="colors"]');
+  const fontReset = panel && panel.querySelector('[data-reset="fonts"]');
+  if (!tab || !panel || !overlay || !closeBtn || !colorGrid || !fontGrid || !colorReset || !fontReset) return;
 
-  const STORAGE_KEY = 'color-overrides';
+  const COLOR_KEY = 'color-overrides';
+  const FONT_KEY = 'font-overrides';
 
   const COLORS = [
     { key: '--c-bg', label: 'Background' },
@@ -28,7 +31,7 @@
     { key: '--c-tab-text', label: 'Tab text' }
   ];
 
-  const DEFAULTS = {
+  const COLOR_DEFAULTS = {
     light: {
       '--c-bg': '#ffffff',
       '--c-text': '#000000',
@@ -63,41 +66,99 @@
     }
   };
 
+  // Coefficients used as calc(N * var(--u)) in style.css
+  // defLarge mirrors the ≥1600px CSS bump for --fs-h1
+  const FONTS = [
+    { key: '--fs-nav', label: 'Nav', min: 4, max: 14, step: 0.1, def: 6.8 },
+    { key: '--fs-brand', label: 'Brand', min: 4, max: 16, step: 0.1, def: 7 },
+    { key: '--fs-tiny', label: 'Tiny', min: 5, max: 16, step: 0.1, def: 8.4 },
+    { key: '--fs-small', label: 'Small', min: 5, max: 18, step: 0.1, def: 8.6 },
+    { key: '--fs-tab', label: 'Tab', min: 5, max: 16, step: 0.1, def: 9 },
+    { key: '--fs-label', label: 'Label', min: 6, max: 20, step: 0.1, def: 11.2 },
+    { key: '--fs-lead', label: 'Lead', min: 8, max: 24, step: 0.1, def: 13.5 },
+    { key: '--fs-h2', label: 'Heading 2', min: 10, max: 28, step: 0.1, def: 16 },
+    { key: '--fs-statement', label: 'Statement', min: 14, max: 40, step: 0.1, def: 25.5 },
+    { key: '--fs-h1', label: 'Heading 1', min: 28, max: 72, step: 0.5, def: 46, defLarge: 58 }
+  ];
+
+  const largeScreen = () => matchMedia('(min-width: 1600px)').matches;
+  const fontDefault = (font) => (font.defLarge && largeScreen() ? font.defLarge : font.def);
+
   let lastFocus = null;
   let open = false;
 
   const theme = () => (root.dataset.theme === 'dark' ? 'dark' : 'light');
 
-  const load = () => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  const load = (key) => {
+    try { return JSON.parse(localStorage.getItem(key)) || {}; }
     catch (e) { return {}; }
   };
 
-  const save = (all) => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(all)); } catch (e) {}
+  const save = (key, all) => {
+    try { localStorage.setItem(key, JSON.stringify(all)); } catch (e) {}
   };
 
-  const currentValue = (key) => {
-    const stored = (load()[theme()] || {})[key];
-    return stored || DEFAULTS[theme()][key];
+  const formatCoeff = (n) => {
+    const rounded = Math.round(Number(n) * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
   };
 
-  const applyOverrides = () => {
-    COLORS.forEach(({ key }) => root.style.removeProperty(key));
-    const overrides = load()[theme()] || {};
-    Object.entries(overrides).forEach(([key, value]) => root.style.setProperty(key, value));
-    syncInputs();
+  const fontCss = (n) => `calc(${formatCoeff(n)} * var(--u))`;
+
+  const currentColor = (key) => {
+    const stored = (load(COLOR_KEY)[theme()] || {})[key];
+    return stored || COLOR_DEFAULTS[theme()][key];
   };
 
-  const syncInputs = () => {
-    grid.querySelectorAll('.color-row').forEach((row) => {
+  const currentFont = (key) => {
+    const stored = load(FONT_KEY)[key];
+    const fallback = FONTS.find((f) => f.key === key);
+    return stored != null ? Number(stored) : fontDefault(fallback);
+  };
+
+  const syncColorInputs = () => {
+    colorGrid.querySelectorAll('.color-row').forEach((row) => {
       const key = row.dataset.key;
-      const value = currentValue(key);
+      const value = currentColor(key);
       const picker = row.querySelector('.color-row__picker');
       const hex = row.querySelector('.color-row__value');
       if (picker) picker.value = value;
       if (hex) hex.textContent = value;
     });
+  };
+
+  const syncFontInputs = () => {
+    fontGrid.querySelectorAll('.font-row').forEach((row) => {
+      const key = row.dataset.key;
+      const value = currentFont(key);
+      const slider = row.querySelector('.font-row__slider');
+      const out = row.querySelector('.font-row__value');
+      if (slider) slider.value = value;
+      if (out) out.textContent = formatCoeff(value);
+    });
+  };
+
+  const applyColorOverrides = () => {
+    COLORS.forEach(({ key }) => root.style.removeProperty(key));
+    const overrides = load(COLOR_KEY)[theme()] || {};
+    Object.entries(overrides).forEach(([key, value]) => root.style.setProperty(key, value));
+    syncColorInputs();
+  };
+
+  const applyFontOverrides = () => {
+    FONTS.forEach(({ key }) => root.style.removeProperty(key));
+    const overrides = load(FONT_KEY);
+    Object.entries(overrides).forEach(([key, value]) => {
+      root.style.setProperty(key, fontCss(value));
+    });
+    // Keep H1 line-height in proportion when H1 size is overridden
+    if (overrides['--fs-h1'] != null) {
+      const h1 = Number(overrides['--fs-h1']);
+      root.style.setProperty('--lh-h1', fontCss(h1 * (52 / 46)));
+    } else {
+      root.style.removeProperty('--lh-h1');
+    }
+    syncFontInputs();
   };
 
   const setPageInert = (on) => {
@@ -152,7 +213,7 @@
     const picker = document.createElement('input');
     picker.type = 'color';
     picker.className = 'color-row__picker';
-    picker.value = currentValue(key);
+    picker.value = currentColor(key);
     picker.setAttribute('aria-label', label);
 
     const name = document.createElement('span');
@@ -166,27 +227,78 @@
     picker.addEventListener('input', () => {
       root.style.setProperty(key, picker.value);
       hex.textContent = picker.value;
-      const all = load();
+      const all = load(COLOR_KEY);
       const current = theme();
       all[current] = { ...(all[current] || {}), [key]: picker.value };
-      save(all);
+      save(COLOR_KEY, all);
     });
 
     row.append(picker, name, hex);
-    grid.append(row);
+    colorGrid.append(row);
   });
 
-  applyOverrides();
+  FONTS.forEach((font) => {
+    const { key, label, min, max, step } = font;
+    const row = document.createElement('label');
+    row.className = 'font-row';
+    row.dataset.key = key;
+
+    const name = document.createElement('span');
+    name.className = 'font-row__label';
+    name.textContent = label;
+
+    const out = document.createElement('span');
+    out.className = 'font-row__value';
+    out.textContent = formatCoeff(currentFont(key));
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'font-row__slider';
+    slider.min = String(min);
+    slider.max = String(max);
+    slider.step = String(step);
+    slider.value = String(currentFont(key));
+    slider.setAttribute('aria-label', `${label} font size`);
+
+    const onChange = () => {
+      const value = Number(slider.value);
+      out.textContent = formatCoeff(value);
+      root.style.setProperty(key, fontCss(value));
+      if (key === '--fs-h1') {
+        root.style.setProperty('--lh-h1', fontCss(value * (52 / 46)));
+      }
+      const all = load(FONT_KEY);
+      if (value === fontDefault(font)) delete all[key];
+      else all[key] = value;
+      save(FONT_KEY, all);
+    };
+
+    slider.addEventListener('input', onChange);
+    row.append(name, out, slider);
+    fontGrid.append(row);
+  });
+
+  matchMedia('(min-width: 1600px)').addEventListener('change', () => {
+    if (load(FONT_KEY)['--fs-h1'] == null) syncFontInputs();
+  });
+
+  applyColorOverrides();
+  applyFontOverrides();
 
   tab.addEventListener('click', () => (open ? closePanel() : openPanel()));
   closeBtn.addEventListener('click', closePanel);
   overlay.addEventListener('click', closePanel);
 
-  resetBtn.addEventListener('click', () => {
-    const all = load();
+  colorReset.addEventListener('click', () => {
+    const all = load(COLOR_KEY);
     delete all[theme()];
-    save(all);
-    applyOverrides();
+    save(COLOR_KEY, all);
+    applyColorOverrides();
+  });
+
+  fontReset.addEventListener('click', () => {
+    save(FONT_KEY, {});
+    applyFontOverrides();
   });
 
   document.addEventListener('keydown', (e) => {
@@ -210,5 +322,5 @@
     }
   });
 
-  root.addEventListener('themechange', applyOverrides);
+  root.addEventListener('themechange', applyColorOverrides);
 })();
