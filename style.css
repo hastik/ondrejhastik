@@ -368,12 +368,89 @@ body.settings-open { overflow: hidden; }
 .settings-panel__close svg { width: 14px; height: 14px; }
 .settings-panel__close:focus-visible,
 .settings-section__reset:focus-visible,
+.settings-actions__btn:focus-visible,
 .color-row__picker:focus-visible,
-.font-row__slider:focus-visible {
+.font-row__slider:focus-visible,
+.settings-dialog__select:focus-visible,
+.settings-dialog__textarea:focus-visible {
   outline: 2px solid var(--c-accent-1); outline-offset: 2px;
 }
 
 .settings-panel__content { padding: var(--settings-pad); overflow: auto; flex: 1; display: grid; gap: 22px; align-content: start; }
+.settings-panel__footer {
+  padding: var(--settings-pad);
+  border-top: 1px solid var(--c-rule);
+  display: grid;
+  gap: 10px;
+}
+.settings-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.settings-actions__btn {
+  border: 1px solid var(--c-rule);
+  background: var(--c-bg);
+  color: var(--c-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--settings-fs-meta);
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 8px 10px;
+}
+.settings-actions__btn--primary { background: var(--c-tab-bg); color: var(--c-tab-text); border-color: var(--c-tab-bg); }
+.settings-actions__btn--export { width: 100%; }
+.settings-actions__btn--danger { color: var(--c-accent-2); }
+.settings-actions__status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: var(--settings-fs-meta);
+  color: var(--c-text-muted);
+}
+
+.settings-dialog {
+  border: 1px solid var(--c-rule);
+  background: var(--c-bg);
+  color: var(--c-text);
+  padding: 0;
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+}
+.settings-dialog::backdrop { background: var(--c-overlay); }
+.settings-dialog--export { width: min(440px, calc(100vw - 24px)); }
+.settings-dialog__form { display: grid; gap: 10px; padding: 16px; }
+.settings-dialog__title {
+  margin: 0;
+  font-weight: 400;
+  font-size: var(--settings-fs-title);
+}
+.settings-dialog__hint,
+.settings-dialog__label {
+  margin: 0;
+  font-size: var(--settings-fs-meta);
+  color: var(--c-text-muted);
+}
+.settings-dialog__select,
+.settings-dialog__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--c-rule);
+  background: var(--c-bg);
+  color: var(--c-text);
+  font: inherit;
+  font-size: var(--settings-fs-meta);
+  padding: 8px;
+}
+.settings-dialog__textarea {
+  resize: vertical;
+  min-height: 180px;
+  line-height: 1.4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.settings-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .settings-section__header {
   display: flex; align-items: baseline; justify-content: space-between;
   margin-bottom: var(--settings-gap);

@@ -1,4 +1,5 @@
 // Settings drawer: colours + live Utopia type/space/container controls.
+// Save / Load presets in localStorage; Export a pasteable block for chat → code defaults.
 (() => {
   const root = document.documentElement;
   const tab = document.querySelector('.hero__tab');
@@ -9,10 +10,26 @@
   const utopiaGrid = document.getElementById('utopia-grid');
   const colorReset = panel && panel.querySelector('[data-reset="colors"]');
   const utopiaReset = panel && panel.querySelector('[data-reset="utopia"]');
-  if (!tab || !panel || !overlay || !closeBtn || !colorGrid || !utopiaGrid || !colorReset || !utopiaReset) return;
+  const statusEl = document.getElementById('settings-status');
+  const saveBtn = panel && panel.querySelector('[data-action="save"]');
+  const loadBtn = panel && panel.querySelector('[data-action="load"]');
+  const exportBtn = panel && panel.querySelector('[data-action="export"]');
+  const loadDialog = document.getElementById('settings-load-dialog');
+  const exportDialog = document.getElementById('settings-export-dialog');
+  const presetSelect = document.getElementById('settings-preset-select');
+  const exportText = document.getElementById('settings-export-text');
+  const exportCopyBtn = document.getElementById('settings-export-copy');
+  if (
+    !tab || !panel || !overlay || !closeBtn || !colorGrid || !utopiaGrid ||
+    !colorReset || !utopiaReset || !saveBtn || !loadBtn || !exportBtn ||
+    !loadDialog || !exportDialog || !presetSelect || !exportText || !exportCopyBtn
+  ) return;
 
   const COLOR_KEY = 'color-overrides';
   const UTOPIA_KEY = 'utopia-overrides';
+  const PRESETS_KEY = 'settings-presets';
+  const EXPORT_KIND = 'ondrejhastik-settings';
+  const EXPORT_VERSION = 1;
 
   const COLORS = [
     { key: '--c-bg', label: 'Background' },
@@ -223,7 +240,7 @@
 
   const setPageInert = (on) => {
     [...document.body.children].forEach((el) => {
-      if (el === panel || el === overlay) return;
+      if (el === panel || el === overlay || el === loadDialog || el === exportDialog) return;
       if (on) el.setAttribute('inert', '');
       else el.removeAttribute('inert');
     });
@@ -352,6 +369,164 @@
   applyColorOverrides();
   applyUtopia();
 
+  const setStatus = (msg) => {
+    if (statusEl) statusEl.textContent = msg || '';
+  };
+
+  const loadPresets = () => {
+    const raw = load(PRESETS_KEY);
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  };
+
+  const effectiveColors = (mode) => {
+    const defaults = COLOR_DEFAULTS[mode] || {};
+    const overrides = (load(COLOR_KEY)[mode] || {});
+    const out = {};
+    COLORS.forEach(({ key }) => {
+      out[key] = overrides[key] || defaults[key];
+    });
+    return out;
+  };
+
+  const currentSnapshot = () => ({
+    version: EXPORT_VERSION,
+    kind: EXPORT_KIND,
+    utopia: utopiaParams(),
+    colors: {
+      light: effectiveColors('light'),
+      dark: effectiveColors('dark')
+    }
+  });
+
+  const applySnapshot = (snapshot) => {
+    if (!snapshot || snapshot.kind !== EXPORT_KIND) {
+      throw new Error('Unknown settings format');
+    }
+    const utopia = { ...UTOPIA_DEFAULTS, ...(snapshot.utopia || {}) };
+    const cleaned = {};
+    Object.keys(UTOPIA_DEFAULTS).forEach((k) => {
+      if (utopia[k] !== UTOPIA_DEFAULTS[k]) cleaned[k] = utopia[k];
+    });
+    save(UTOPIA_KEY, cleaned);
+    applyUtopia({ ...UTOPIA_DEFAULTS, ...cleaned });
+
+    const nextColors = {};
+    ['light', 'dark'].forEach((mode) => {
+      const incoming = (snapshot.colors && snapshot.colors[mode]) || {};
+      const defaults = COLOR_DEFAULTS[mode] || {};
+      const overrides = {};
+      COLORS.forEach(({ key }) => {
+        if (incoming[key] && incoming[key] !== defaults[key]) overrides[key] = incoming[key];
+      });
+      if (Object.keys(overrides).length) nextColors[mode] = overrides;
+    });
+    save(COLOR_KEY, nextColors);
+    applyColorOverrides();
+  };
+
+  const exportBlock = () => {
+    const payload = {
+      ...currentSnapshot(),
+      exportedAt: new Date().toISOString(),
+      note: 'Paste this whole block into chat. Agent should update UTOPIA_DEFAULTS and COLOR_DEFAULTS in settings.js to match.'
+    };
+    return [
+      '```ondrejhastik-settings-v1',
+      JSON.stringify(payload, null, 2),
+      '```'
+    ].join('\n');
+  };
+
+  const fillPresetSelect = () => {
+    const presets = loadPresets();
+    const names = Object.keys(presets).sort((a, b) => a.localeCompare(b));
+    presetSelect.innerHTML = '';
+    names.forEach((name) => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      presetSelect.append(opt);
+    });
+    return names;
+  };
+
+  saveBtn.addEventListener('click', () => {
+    const name = window.prompt('Preset name');
+    if (name == null) return;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setStatus('Name required');
+      return;
+    }
+    const presets = loadPresets();
+    if (presets[trimmed] && !window.confirm(`Overwrite “${trimmed}”?`)) return;
+    presets[trimmed] = {
+      ...currentSnapshot(),
+      name: trimmed,
+      savedAt: new Date().toISOString()
+    };
+    save(PRESETS_KEY, presets);
+    setStatus(`Saved “${trimmed}”`);
+  });
+
+  loadBtn.addEventListener('click', () => {
+    const names = fillPresetSelect();
+    if (!names.length) {
+      setStatus('No saved presets');
+      return;
+    }
+    if (typeof loadDialog.showModal === 'function') loadDialog.showModal();
+    else setStatus('Dialog not supported');
+  });
+
+  loadDialog.addEventListener('close', () => {
+    const action = loadDialog.returnValue;
+    const name = presetSelect.value;
+    if (!name || action === 'cancel' || !action) return;
+
+    const presets = loadPresets();
+    if (action === 'delete') {
+      if (!window.confirm(`Delete “${name}”?`)) return;
+      delete presets[name];
+      save(PRESETS_KEY, presets);
+      setStatus(`Deleted “${name}”`);
+      return;
+    }
+    if (action === 'load') {
+      try {
+        applySnapshot(presets[name]);
+        setStatus(`Loaded “${name}”`);
+      } catch (e) {
+        setStatus('Could not load preset');
+      }
+    }
+  });
+
+  exportBtn.addEventListener('click', async () => {
+    const block = exportBlock();
+    exportText.value = block;
+    if (typeof exportDialog.showModal === 'function') exportDialog.showModal();
+    try {
+      await navigator.clipboard.writeText(block);
+      setStatus('Exported — copied to clipboard');
+    } catch (e) {
+      setStatus('Exported — copy from the dialog');
+      exportText.focus();
+      exportText.select();
+    }
+  });
+
+  exportCopyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(exportText.value);
+      setStatus('Copied to clipboard');
+    } catch (e) {
+      exportText.focus();
+      exportText.select();
+      setStatus('Select and copy manually');
+    }
+  });
+
   tab.addEventListener('click', () => (open ? closePanel() : openPanel()));
   closeBtn.addEventListener('click', closePanel);
   overlay.addEventListener('click', closePanel);
@@ -370,6 +545,7 @@
   });
 
   document.addEventListener('keydown', (e) => {
+    if (loadDialog.open || exportDialog.open) return;
     if (!open) return;
     if (e.key === 'Escape') {
       e.preventDefault();

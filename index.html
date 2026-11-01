@@ -129,7 +129,40 @@
         <div class="utopia-grid" id="utopia-grid"></div>
       </section>
     </div>
+    <div class="settings-panel__footer">
+      <div class="settings-actions">
+        <button class="settings-actions__btn" type="button" data-action="save">Save</button>
+        <button class="settings-actions__btn" type="button" data-action="load">Load</button>
+      </div>
+      <button class="settings-actions__btn settings-actions__btn--export" type="button" data-action="export">Export</button>
+      <p class="settings-actions__status" id="settings-status" aria-live="polite"></p>
+    </div>
   </aside>
+
+  <dialog class="settings-dialog" id="settings-load-dialog">
+    <form method="dialog" class="settings-dialog__form">
+      <h3 class="settings-dialog__title">Load preset</h3>
+      <label class="settings-dialog__label" for="settings-preset-select">Saved presets</label>
+      <select class="settings-dialog__select" id="settings-preset-select" size="6"></select>
+      <div class="settings-dialog__actions">
+        <button class="settings-actions__btn" type="submit" value="cancel">Cancel</button>
+        <button class="settings-actions__btn settings-actions__btn--danger" type="submit" value="delete">Delete</button>
+        <button class="settings-actions__btn settings-actions__btn--primary" type="submit" value="load">Load</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="settings-dialog settings-dialog--export" id="settings-export-dialog">
+    <form method="dialog" class="settings-dialog__form">
+      <h3 class="settings-dialog__title">Export settings</h3>
+      <p class="settings-dialog__hint">Copy this block and paste it into chat so the values can be applied as new defaults.</p>
+      <textarea class="settings-dialog__textarea" id="settings-export-text" readonly rows="14" spellcheck="false"></textarea>
+      <div class="settings-dialog__actions">
+        <button class="settings-actions__btn" type="submit" value="close">Close</button>
+        <button class="settings-actions__btn settings-actions__btn--primary" type="button" id="settings-export-copy">Copy</button>
+      </div>
+    </form>
+  </dialog>
   <div class="settings-overlay" aria-hidden="true"></div>
 </body>
 </html>
