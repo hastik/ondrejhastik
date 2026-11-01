@@ -8,7 +8,8 @@
   /* Wrappers: width system for layout */
   --wrapper-normal: calc(1024 * var(--u));
   --wrapper-wide: min(100%, calc(1400 * var(--u)));
-  --page-gutter: calc(70 * var(--u));
+  --page-gutter: calc(70 * var(--u));       /* wide (header) */
+  --content-inset: calc(135 * var(--u));    /* normal content + intro left edge */
 
   /* Palette – light */
   --c-bg: #ffffff;
@@ -51,7 +52,7 @@
   --line-h: calc(4 * var(--u));
   --hero-h: calc(488 * var(--u));
   --nav-gap: calc(29 * var(--u));
-  --intro-x: calc(131 * var(--u));
+  --intro-x: var(--content-inset);
   --intro-y: calc(130 * var(--u));
   --photo-x: calc(478 * var(--u));
   --photo-h: calc(440 * var(--u));
@@ -137,10 +138,11 @@ img { display: block; max-width: 100%; }
   width: 100%;
   max-width: var(--wrapper-normal);
   margin-inline: auto;
-  padding-inline: var(--page-gutter);
+  padding-inline: var(--content-inset);
 }
 .wrapper--wide {
   max-width: var(--wrapper-wide);
+  padding-inline: var(--page-gutter);
 }
 .wrapper--flush {
   padding-inline: 0;
@@ -360,6 +362,7 @@ body.settings-open { overflow: hidden; }
     --wrapper-normal: 100%;
     --wrapper-wide: 100%;
     --page-gutter: 24px;
+    --content-inset: 24px;
     --fs-brand: 10px; --fs-lead: 15px; --fs-h1: 40px; --lh-h1: 44px; --lh-lead: 21px;
     --fs-tiny: 12px; --lh-tiny: 17px; --fs-label: 13px; --fs-statement: 22px; --lh-statement: 29px;
     --fs-h2: 20px; --lh-h2: 23px; --fs-small: 14px; --lh-small: 20px; --fs-tab: 10px;
